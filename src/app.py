@@ -150,23 +150,53 @@ def handle_planet_by_id(planet_id):
         return response_body, 200
 
 
-@app.route('/favorite-planets/<int:planet_id>', methods=['POST', 'DELETE'])
-def handle_favorite_planets(planet_id): 
+@app.route('/users/<int:user_id>/favorite-planets/<int:planet_id>', methods=['POST', 'DELETE'])
+def handle_favorite_planets(planet_id, user_id): 
     if request.method == 'POST':
-        data = request.get_json()
-        planet = FavoritePlanets(user_id=data['user_id'], 
+        planet = FavoritePlanets(user_id=user_id, 
                                 planet_id=planet_id)
         db.session.add(planet)
         db.session.commit()
-        response_body = {'message': 'Planet add to favorite list', 
+        response_body = {'message': 'Planet added to favorite list', 
                         'results': planet.serialize()}
         return response_body, 201
     if request.method == 'DELETE':
-        planet = db.one_or_404(db.select(FavoritePlanets).filter_by(id=planet_id), 
+        planet = db.one_or_404(db.select(FavoritePlanets).filter_by(planet_id=planet_id, user_id=user_id), 
                         description=f"Planet not found , 404.")
         db.session.delete(planet)
         db.session.commit()
         response_body = {'message': 'Planet deleted'}
+        return response_body, 200
+
+
+@app.route('/users/<int:user_id>/favorite-peoples/<int:people_id>', methods=['POST', 'DELETE'])
+def handle_favorite_peoples(people_id, user_id): 
+    if request.method == 'POST':
+        people = FavoritePeoples(user_id=user_id, 
+                                people_id=people_id)
+        db.session.add(people)
+        db.session.commit()
+        response_body = {'message': 'People added to favorite list', 
+                        'results': people.serialize()}
+        return response_body, 201
+    if request.method == 'DELETE':
+        people = db.one_or_404(db.select(FavoritePeoples).filter_by(id=people_id, user_id=user_id), 
+                        description=f"People not found , 404.")
+        db.session.delete(people)
+        db.session.commit()
+        response_body = {'message': 'People deleted'}
+        return response_body, 200
+
+
+@app.route('/users/<int:user_id>/favorites', methods=['GET'])
+def handle_favorites(user_id):
+        favorite_planets = db.session.execute(db.select(FavoritePlanets).filter_by(user_id=user_id)).scalars()
+        favorite_planet_list = [favorite_planet.serialize() for favorite_planet in favorite_planets]
+        favorite_peoples = db.session.execute(db.select(FavoritePeoples).filter_by(user_id=user_id)).scalars()
+        favorite_people_list = [favorite_people.serialize() for favorite_people in favorite_peoples]
+        response_body = {'message': 'Favorites List', 
+                        'results': {'planets': favorite_planet_list,
+                                   'peoples': favorite_people_list}}
         return response_body, 200
 
 

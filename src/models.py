@@ -105,9 +105,9 @@ class FavoritePlanets(db.Model):
 class FavoritePeoples(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    character_id = db.Column(db.Integer, db.ForeignKey('peoples.id'))
+    people_id = db.Column(db.Integer, db.ForeignKey('peoples.id'))
     user = db.relationship(Users)
-    character = db.relationship(Peoples)
+    people = db.relationship(Peoples)
 
     def __repr__(self):
         return f'<FavoritePeoples {self.id}>'
@@ -115,7 +115,7 @@ class FavoritePeoples(db.Model):
     def serialize(self):
         return {"id": self.id,
                 "user_id": self.user_id,
-                "character_id": self.character_id}
+                "people_id": self.people_id}
 
 
 class FavoriteVehicles(db.Model):
