@@ -50,6 +50,19 @@ def handle_users():
     return response_body, 200
 
 
+@app.route('/users', methods=['POST'])
+def handle_new_users():
+        data = request.get_json()
+        user = Users(email=data['email'], 
+                     password=data['password'],
+                     is_active=True)
+        db.session.add(user)
+        db.session.commit()
+        response_body = {'message': 'User created', 
+                         'results': user.serialize()}
+        return response_body, 201
+
+
 @app.route('/peoples', methods=['GET', 'POST'])
 def handle_peoples():
     if request.method == 'GET':
