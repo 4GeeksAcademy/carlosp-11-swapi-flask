@@ -8,11 +8,12 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
-#from models import Person
+from models import db, Users, Peoples, Planets, Vehicles, FavoritePeoples, FavoritePlanets, FavoriteVehicles
+
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+
 
 db_url = os.getenv("DATABASE_URL")
 if db_url is not None:
@@ -21,29 +22,153 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+
 MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
 setup_admin(app)
+
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
+
 # generate sitemap with all your endpoints
 @app.route('/')
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+@app.route('/users', methods=['GET'])
+def handle_users():
+    users = db.session.execute(db.select(Users)).scalars()
+    users_list = [user.serialize() for user in users]
+    response_body = {'message': 'Users List', 
+                     'results': users_list}
+    return response_body, 200
 
-    return jsonify(response_body), 200
+
+@app.route('/peoples', methods=['GET', 'POST'])
+def handle_peoples():
+    if request.method == 'GET':
+        peoples = db.session.execute(db.select(Peoples)).scalars()
+        peoples_list = [people.serialize() for people in peoples]
+        response_body = {'message': 'Peoples List', 
+                        'results': peoples_list}
+        return response_body, 200
+    if request.method == 'POST':
+        data = request.get_json()
+        people = Peoples(name=data['name'], 
+                         birth_date=data['birth_date'],
+                         gender=data['gender'],
+                         skin_color=data['skin_color'],
+                         eyes_color=data['eyes_color'],
+                         hair_color=data['hair_color'])
+        db.session.add(people)
+        db.session.commit()
+        response_body = {'message': 'People created', 
+                         'results': people.serialize()}
+        return response_body, 201
+
+
+@app.route('/peoples/<int:people_id>', methods=['GET', 'PUT', 'DELETE'])
+def handle_people_by_id(people_id):
+    people = db.one_or_404(db.select(Peoples).filter_by(id=people_id), 
+                        description=f"People not found , 404.")
+    if request.method == 'GET':
+        response_body = {'message': 'People', 
+                        'results': people.serialize()}
+        return response_body, 200
+    if request.method == 'PUT':
+        data = request.get_json()
+        name=data['name'], 
+        birth_date=data['birth_date'],
+        gender=data['gender'],
+        skin_color=data['skin_color'],
+        eyes_color=data['eyes_color'],
+        hair_color=data['hair_color']
+        db.session.commit()
+        response_body = {'message': 'People updated', 
+                        'results': people.serialize()}
+        return response_body, 200
+    if request.method == 'DELETE':
+        db.session.delete(people)
+        db.session.commit()
+        response_body = {'message': 'People deleted'}
+        return response_body, 200
+
+
+@app.route('/planets', methods=['GET', 'POST'])
+def handle_planets():
+    if request.method == 'GET':
+        planets = db.session.execute(db.select(Planets)).scalars()
+        planet_list = [planet.serialize() for planet in planets]
+        response_body = {'message': 'Planets List', 
+                        'results': planet_list}
+        return response_body, 200
+    if request.method == 'POST':
+        data = request.get_json()
+        planet = Planets(name=data['name'], 
+                         diameter=data['diameter'],
+                         rotation_period=data['rotation_period'],
+                         orbital_period=data['orbital_period'],
+                         population=data['population'],
+                         climate=data['climate'])
+        db.session.add(planet)
+        db.session.commit()
+        response_body = {'message': 'Planet created', 
+                         'results': planet.serialize()}
+        return response_body, 201
+
+
+@app.route('/planets/<int:planet_id>', methods=['GET', 'PUT', 'DELETE'])
+def handle_planet_by_id(planet_id):
+    planet = db.one_or_404(db.select(Planets).filter_by(id=planet_id), 
+                        description=f"Planet not found , 404.")
+    if request.method == 'GET':
+        response_body = {'message': 'Planet', 
+                        'results': planet.serialize()}
+        return response_body, 200
+    if request.method == 'PUT':
+        data = request.get_json()
+        name=data['name'], 
+        diameter=data['diameter'],
+        rotation_period=data['rotation_period'],
+        orbital_period=data['orbital_period'],
+        population=data['population'],
+        climate=data['climate']
+        db.session.commit()
+        response_body = {'message': 'Planet updated', 
+                        'results': planet.serialize()}
+        return response_body, 200
+    if request.method == 'DELETE':
+        db.session.delete(planet)
+        db.session.commit()
+        response_body = {'message': 'Planet deleted'}
+        return response_body, 200
+
+
+@app.route('/favorite-planets/<int:planet_id>', methods=['POST', 'DELETE'])
+def handle_favorite_planets(planet_id): 
+    if request.method == 'POST':
+        data = request.get_json()
+        planet = FavoritePlanets(user_id=data['user_id'], 
+                                planet_id=planet_id)
+        db.session.add(planet)
+        db.session.commit()
+        response_body = {'message': 'Planet add to favorite list', 
+                        'results': planet.serialize()}
+        return response_body, 201
+    if request.method == 'DELETE':
+        planet = db.one_or_404(db.select(FavoritePlanets).filter_by(id=planet_id), 
+                        description=f"Planet not found , 404.")
+        db.session.delete(planet)
+        db.session.commit()
+        response_body = {'message': 'Planet deleted'}
+        return response_body, 200
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
